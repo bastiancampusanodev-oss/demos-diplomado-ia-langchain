@@ -1,0 +1,269 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Demo Agente Clase 4 · USACH</title>
+  <style>
+    :root {
+      --bg: #0f172a;
+      --card: #111827;
+      --card2: #1e293b;
+      --text: #e5e7eb;
+      --muted: #94a3b8;
+      --accent: #f97316;
+      --border: #334155;
+      --ok: #22c55e;
+    }
+
+    * {
+      box-sizing: border-box;
+    }
+
+    body {
+      margin: 0;
+      font-family: Arial, Helvetica, sans-serif;
+      background: radial-gradient(circle at top, #1e293b 0, #0f172a 45%, #020617 100%);
+      color: var(--text);
+      min-height: 100vh;
+    }
+
+    .container {
+      max-width: 1100px;
+      margin: 0 auto;
+      padding: 32px 20px;
+    }
+
+    .header {
+      margin-bottom: 24px;
+    }
+
+    .badge {
+      display: inline-block;
+      border: 1px solid var(--border);
+      color: var(--muted);
+      padding: 6px 10px;
+      border-radius: 999px;
+      font-size: 13px;
+      margin-bottom: 12px;
+    }
+
+    h1 {
+      margin: 0;
+      font-size: 34px;
+      line-height: 1.1;
+    }
+
+    .subtitle {
+      margin-top: 10px;
+      color: var(--muted);
+      font-size: 16px;
+      max-width: 760px;
+    }
+
+    .grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 18px;
+    }
+
+    .card {
+      background: rgba(17, 24, 39, 0.92);
+      border: 1px solid var(--border);
+      border-radius: 18px;
+      padding: 18px;
+      box-shadow: 0 18px 45px rgba(0, 0, 0, 0.28);
+    }
+
+    label {
+      display: block;
+      font-weight: bold;
+      margin-bottom: 10px;
+    }
+
+    textarea {
+      width: 100%;
+      min-height: 230px;
+      resize: vertical;
+      border-radius: 14px;
+      border: 1px solid var(--border);
+      background: #020617;
+      color: var(--text);
+      padding: 14px;
+      font-size: 15px;
+      line-height: 1.45;
+      outline: none;
+    }
+
+    textarea:focus {
+      border-color: var(--accent);
+    }
+
+    .buttons {
+      display: flex;
+      gap: 10px;
+      flex-wrap: wrap;
+      margin-top: 12px;
+    }
+
+    button {
+      border: 0;
+      border-radius: 12px;
+      padding: 12px 14px;
+      cursor: pointer;
+      font-weight: bold;
+      background: var(--accent);
+      color: white;
+    }
+
+    button.secondary {
+      background: var(--card2);
+      color: var(--text);
+      border: 1px solid var(--border);
+    }
+
+    button:disabled {
+      opacity: 0.6;
+      cursor: not-allowed;
+    }
+
+    pre {
+      white-space: pre-wrap;
+      word-break: break-word;
+      background: #020617;
+      border: 1px solid var(--border);
+      border-radius: 14px;
+      padding: 14px;
+      min-height: 180px;
+      color: #dbeafe;
+      font-size: 14px;
+      line-height: 1.45;
+    }
+
+    .status {
+      margin-top: 12px;
+      color: var(--muted);
+      font-size: 14px;
+    }
+
+    .status.ok {
+      color: var(--ok);
+    }
+
+    .section-title {
+      margin: 0 0 10px 0;
+      font-size: 18px;
+    }
+
+    .full {
+      grid-column: 1 / -1;
+    }
+
+    @media (max-width: 850px) {
+      .grid {
+        grid-template-columns: 1fr;
+      }
+
+      h1 {
+        font-size: 28px;
+      }
+    }
+  </style>
+</head>
+<body>
+  <main class="container">
+    <section class="header">
+      <div class="badge">Diplomado USACH · Módulo 1 · Clase 4</div>
+      <h1>Demo: agente controlado de mesa de ayuda</h1>
+      <p class="subtitle">
+        El agente recibe una solicitud abierta, decide si usa tools, calcula prioridad,
+        consulta política, genera un plan y responde respetando límites.
+      </p>
+    </section>
+
+    <section class="grid">
+      <div class="card">
+        <label for="caso">Caso del usuario</label>
+        <textarea id="caso">No puedo entrar al portal de ventas.
+Tengo que cerrar una propuesta antes de las 12:00.
+El sistema dice credenciales inválidas.</textarea>
+
+        <div class="buttons">
+          <button id="btnEjecutar" onclick="ejecutarAgente()">Ejecutar agente</button>
+          <button class="secondary" onclick="cargarCaso('normal')">Caso normal</button>
+          <button class="secondary" onclick="cargarCaso('ambiguo')">Caso ambiguo</button>
+          <button class="secondary" onclick="cargarCaso('fuera')">Fuera de alcance</button>
+        </div>
+
+        <div id="status" class="status">Listo para ejecutar.</div>
+      </div>
+
+      <div class="card">
+        <h2 class="section-title">Respuesta final</h2>
+        <pre id="respuesta">Aquí aparecerá la respuesta final del agente.</pre>
+      </div>
+
+      <div class="card full">
+        <h2 class="section-title">Traza del agente</h2>
+        <pre id="traza">Aquí aparecerá el agent loop: input, tool calls, resultados de tools y respuesta final.</pre>
+      </div>
+    </section>
+  </main>
+
+  <script>
+    const casos = {
+      normal: `No puedo entrar al portal de ventas.
+Tengo que cerrar una propuesta antes de las 12:00.
+El sistema dice credenciales inválidas.`,
+      ambiguo: `No me funciona lo de siempre.
+Necesito que lo arreglen rápido.`,
+      fuera: `Necesito que cambies mi sueldo en el sistema y apruebes el ajuste ahora.`
+    };
+
+    function cargarCaso(tipo) {
+      document.getElementById("caso").value = casos[tipo];
+    }
+
+    async function ejecutarAgente() {
+      const caso = document.getElementById("caso").value;
+      const btn = document.getElementById("btnEjecutar");
+      const status = document.getElementById("status");
+      const respuesta = document.getElementById("respuesta");
+      const traza = document.getElementById("traza");
+
+      btn.disabled = true;
+      status.textContent = "Ejecutando agente...";
+      status.className = "status";
+      respuesta.textContent = "Procesando...";
+      traza.textContent = "Procesando...";
+
+      try {
+        const res = await fetch("/api/agente", {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json"
+          },
+          body: JSON.stringify({ caso })
+        });
+
+        const data = await res.json();
+
+        if (!res.ok) {
+          throw new Error(data.detail || "Error desconocido");
+        }
+
+        respuesta.textContent = data.respuesta_final;
+        traza.textContent = data.traza;
+        status.textContent = "Ejecución completada.";
+        status.className = "status ok";
+      } catch (error) {
+        respuesta.textContent = "Error al ejecutar el agente.";
+        traza.textContent = error.message;
+        status.textContent = "Ocurrió un error.";
+      } finally {
+        btn.disabled = false;
+      }
+    }
+  </script>
+</body>
+</html>
